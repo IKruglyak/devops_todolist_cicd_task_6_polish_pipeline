@@ -7,6 +7,17 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Artifact to deploy to'
+        required: true
+        type: choice
+        options: ['python-artifacts-3.8-ubuntu-latest', 'python-artifacts-3.9-ubuntu-latest', 'python-artifacts-3.8-windows-latest', 'python-artifacts-3.9-windows-latest']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PythonVersion: 3.8
@@ -14,7 +25,26 @@ env:
 
 jobs:
   python-ci:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+#        PythonVersion: [3.8, 3.9]
+#        OsType: [ubuntu-latest, windows-latest]
+        include:
+          - environment: python-artifacts-3.8-ubuntu-latest
+            PythonVersion: 3.8
+            OsType: ubuntu-latest
+          - environment: python-artifacts-3.9-ubuntu-latest
+            PythonVersion: 3.9
+            OsType: ubuntu-latest
+          - environment: python-artifacts-3.8-windows-latest
+            PythonVersion: 3.8
+            OsType: windows-latest
+          - environment: python-artifacts-3.9-windows-latest
+            PythonVersion: 3.9
+            OsType: windows-latest
+
+    name: Python CI
+    runs-on: ${{ matrix.OsType }}
     defaults:
       run:
         working-directory: ./src
@@ -22,10 +52,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PythonVersion }}
+      - name: Set up Python ${{ matrix.PythonVersion }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.PythonVersion }}
+          python-version: ${{ matrix.PythonVersion }}
 
       - name: Install dependencies
         run: |
@@ -126,11 +156,21 @@ jobs:
         name: helm-package
         path: ./*.tgz
 
-  deploy-helm:
-    name: Deploy helm
+  deploy-helm-dev:
+    name: Deploy Helm
     uses: ./.github/workflows/reusable-deployment.yml
-    needs: [helm-ci, docker-ci]
+    needs: [ helm-ci, docker-ci]
     secrets: inherit
     with:
       environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy Helm
+    uses: ./.github/workflows/reusable-deployment.yml
+    secrets: inherit
+    with:
+      environment: staging
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
       version: ${{ github.sha }}
