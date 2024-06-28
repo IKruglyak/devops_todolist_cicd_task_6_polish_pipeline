@@ -168,10 +168,22 @@ jobs:
           name: helm-package-ubuntu-latest-3.8
           path: ./*.tgz
 
-  deploy-helm:
-    name: Deploy helm
-    runs-on: ubuntu-latest
-    needs: [helm-ci, docker-ci]
-    steps:
-      - name: Notify for Manual Approval
-        run: echo "Please trigger the Helm Deploy workflow manually with the appropriate inputs to proceed with the deployment."
+  deploy-helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/reusable-deployment.yml
+    needs: [ helm-ci, docker-ci ]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy Helm
+    uses: ./.github/workflows/reusable-deployment.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
+      version: ${{ github.sha }}
