@@ -172,7 +172,7 @@ jobs:
       uses: azure/setup-helm@v4.2.0
 
     - name: check
-      run: echo pwd
+      run: pwd
 
     - name: Lint helm
       run: helm lint ./todoapp/
