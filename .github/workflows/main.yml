@@ -19,8 +19,6 @@ jobs:
   python-ci:
     strategy:
       matrix:
-#        PythonVersion: [3.8, 3.9]
-#        OsType: [ubuntu-latest, windows-latest]
         include:
           - environment: python-artifacts-3.8-ubuntu-latest
             PythonVersion: 3.8
@@ -170,7 +168,7 @@ jobs:
 
   deploy-helm-dev:
     name: Deploy Helm
-    uses: ./.github/workflows/reusable-deployment.yml
+    uses: ./.github/workflows/helm-upgrade.yml
     needs: [ helm-ci, docker-ci ]
     secrets: inherit
     with:
@@ -179,7 +177,7 @@ jobs:
 
   deploy-helm-staging:
     name: Deploy Helm
-    uses: ./.github/workflows/reusable-deployment.yml
+    uses: ./.github/workflows/helm-upgrade.yml
     needs: deploy-helm-dev
     secrets: inherit
     with:
